@@ -1,0 +1,21 @@
+version: '3.8'
+services: 
+    mongo:
+        image: mongo:latest
+        container_name: mongo
+        ports:
+            - 27017:27017
+        volumes: 
+            - mongodata:/data/db
+    api:
+        container_name: api
+        build: ./api
+        ports: 
+            - 80:80
+        depends_on: 
+            - mongo
+        environment: 
+            - MONGODB_URI=mongodb://mongo:27017/
+            - OBSERVATION_PERIOD_SEC=3600.0
+volumes: 
+    mongodata:
