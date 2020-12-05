@@ -64,15 +64,11 @@ class AvitoApi:
         return self.__proxied_request(urn)
 
     def get_location_id(self, location: str) -> int:
-        """The method attempts to find given
+        """
+        The method attempts to find given
         location in Avito regions
         Returns id of the location on success
         Returns 'None' on fail
-
-        Parameters
-        ----------
-        sound : str, optional
-            The sound the animal makes (default is None)
         """
         data = self.__slocations(location)
         if 'result' not in data or 'locations' not in data['result']:
@@ -87,10 +83,12 @@ class AvitoApi:
         return None
 
     def get_items_count(self, location_id: int, query: str) -> int:
-        """The method attempts to get the number of Avito adverts
+        """
+        The method attempts to get the number of Avito adverts
         for the given search query and region id
         Returns the number of the adverts on success
-        Returns 'None' on fail"""
+        Returns 'None' on fail
+        """
         data = self.__items(location_id, query)
         if 'result' not in data or 'totalCount' not in data['result']:
             return None
