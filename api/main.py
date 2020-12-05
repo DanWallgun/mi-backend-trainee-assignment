@@ -19,6 +19,10 @@ OBSERVATION_PERIOD_SEC = float(os.getenv(
     'OBSERVATION_PERIOD_SEC',
     3600.0
 ))
+PROXY_HOST = os.getenv('PROXY_HOST')
+PROXY_PORT = os.getenv('PROXY_PORT')
+
+avito = AvitoApi(PROXY_HOST, PROXY_PORT)
 
 mongoClient = MongoClient(MONGODB_URI)
 db = mongoClient['avito-observer']
@@ -38,7 +42,7 @@ async def update_counter_and_commit(observer: Observer):
     observer : model.Observer
         the observer for whom a new observation will be made
     """
-    count = AvitoApi.get_items_count(
+    count = avito.get_items_count(
         location_id=observer.region_id,
         query=observer.query
     )
@@ -64,6 +68,11 @@ async def update_counters_routine(period: float = OBSERVATION_PERIOD_SEC):
         start_time = time.perf_counter()
         observers = repo.get_all()
         for observer in observers:
+            if len(observer.counters) > 0:
+                blind_time = datetime.utcnow().timestamp() \
+                    - observers.counters[-1].timestamp
+                if blind_time < period / 2:
+                    continue
             await update_counter_and_commit(observer)
         elapsed_time = time.perf_counter() - start_time
         await asyncio.sleep(max(0, period - elapsed_time))
@@ -99,14 +108,14 @@ async def add(region: str, query: str):
     Adds a new observer for a given request
     Returns created observer
     """
-    region_id = AvitoApi.get_location_id(location=region)
+    region_id = avito.get_location_id(location=region)
     if not region_id:
         raise HTTPException(status_code=404, detail="Region not found")
     observer = Observer(
         query=query,
         region_id=region_id
     )
-    count = AvitoApi.get_items_count(location_id=region_id, query=query)
+    count = avito.get_items_count(location_id=region_id, query=query)
     observer.counters.append(
         Counter(
             count=count,

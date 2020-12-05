@@ -1,5 +1,5 @@
 from json import loads
-from urllib.request import urlopen
+import http.client
 from urllib.parse import urlencode
 
 
@@ -13,38 +13,57 @@ class AvitoApi:
     ----------
     __API_KEY : str
         the key used in api requests
+    __PROXY_HOST : str
+        proxy host used in requests
+    __PROXY_PORT : int
+        proxy port used in requests
     """
 
-    __API_KEY = u'af0deccbgcgidddjgnvljitntccdduijhdinfgjgfjir'
+    __API_KEY: str = u'af0deccbgcgidddjgnvljitntccdduijhdinfgjgfjir'
+    __PROXY_HOST: str = None
+    __PROXY_PORT: int = None
 
-    @staticmethod
-    def __slocations(location: str) -> dict:
-        API_URL = u'https://m.avito.ru/api/1/slocations'
-        response = urlopen(
-            API_URL + '?' + urlencode({
-                'key': AvitoApi.__API_KEY,
-                'q': location
-            })
-        )
-        data = response.read()
+    def __init__(self, proxy_host: str, proxy_port: str):
+        if not proxy_host or not proxy_port:
+            self.__PROXY_HOST = None
+            self.__PROXY_PORT = None
+        else:
+            self.__PROXY_HOST = proxy_host
+            self.__PROXY_PORT = int(proxy_port)
+
+    def __proxied_request(self, urn: str) -> dict:
+        if self.__PROXY_HOST:
+            connection = http.client.HTTPSConnection(
+                self.__PROXY_HOST,
+                self.__PROXY_PORT
+            )
+            connection.set_tunnel('m.avito.ru', 443)
+        else:
+            connection = http.client.HTTPSConnection('m.avito.ru')
+        connection.request('GET', urn)
+        data = connection.getresponse().read()
+        connection.close()
         return loads(data.decode('utf-8'))
 
-    @staticmethod
-    def __items(location_id: int, query: str) -> dict:
-        API_URL = u'https://m.avito.ru/api/9/items'
-        response = urlopen(
-            API_URL + '?' + urlencode({
-                'key': AvitoApi.__API_KEY,
-                'locationId': location_id,
-                'query': query,
-                'countOnly': True
-            })
-        )
-        data = response.read()
-        return loads(data.decode('utf-8'))
+    def __slocations(self, location: str) -> dict:
+        urn = '/api/1/slocations' + '?' + urlencode({
+            'key': AvitoApi.__API_KEY,
+            'q': location
+        })
 
-    @staticmethod
-    def get_location_id(location: str) -> int:
+        return self.__proxied_request(urn)
+
+    def __items(self, location_id: int, query: str) -> dict:
+        urn = '/api/9/items' + '?' + urlencode({
+            'key': AvitoApi.__API_KEY,
+            'locationId': location_id,
+            'query': query,
+            'countOnly': True
+        })
+
+        return self.__proxied_request(urn)
+
+    def get_location_id(self, location: str) -> int:
         """The method attempts to find given
         location in Avito regions
         Returns id of the location on success
@@ -55,7 +74,7 @@ class AvitoApi:
         sound : str, optional
             The sound the animal makes (default is None)
         """
-        data = AvitoApi.__slocations(location)
+        data = self.__slocations(location)
         if 'result' not in data or 'locations' not in data['result']:
             return None
         locations = data['result']['locations']
@@ -67,13 +86,12 @@ class AvitoApi:
                     return loc['id']
         return None
 
-    @staticmethod
-    def get_items_count(location_id: int, query: str) -> int:
+    def get_items_count(self, location_id: int, query: str) -> int:
         """The method attempts to get the number of Avito adverts
         for the given search query and region id
         Returns the number of the adverts on success
         Returns 'None' on fail"""
-        data = AvitoApi.__items(location_id, query)
+        data = self.__items(location_id, query)
         if 'result' not in data or 'totalCount' not in data['result']:
             return None
         return data['result']['totalCount']

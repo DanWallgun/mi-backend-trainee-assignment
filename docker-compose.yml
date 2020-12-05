@@ -17,5 +17,8 @@ services:
         environment: 
             - MONGODB_URI=mongodb://mongo:27017/
             - OBSERVATION_PERIOD_SEC=3600.0
+            - PROXY_HOST=77.247.94.131
+            - PROXY_PORT=48602
+            
 volumes: 
     mongodata:
