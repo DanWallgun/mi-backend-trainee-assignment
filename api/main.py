@@ -17,7 +17,7 @@ MONGODB_URI = os.getenv(
 )
 OBSERVATION_PERIOD_SEC = float(os.getenv(
     'OBSERVATION_PERIOD_SEC',
-    3600.0
+    '3600.0'
 ))
 PROXY_HOST = os.getenv('PROXY_HOST')
 PROXY_PORT = os.getenv('PROXY_PORT')
@@ -70,7 +70,7 @@ async def update_counters_routine(period: float = OBSERVATION_PERIOD_SEC):
         for observer in observers:
             if len(observer.counters) > 0:
                 blind_time = datetime.utcnow().timestamp() \
-                    - observers.counters[-1].timestamp
+                    - observer.counters[-1].timestamp
                 if blind_time < period / 2:
                     continue
             await update_counter_and_commit(observer)
